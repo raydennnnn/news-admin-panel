@@ -1,4 +1,6 @@
-const API_BASE_URL = '/api';
+// In dev: VITE_API_BASE_URL is empty — Vite proxy handles /api
+// In production: VITE_API_BASE_URL = https://newsapi.dextora.org/api
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Get the stored access token from localStorage.
