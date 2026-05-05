@@ -114,7 +114,7 @@ const VerificationQueue = () => {
   const getDocUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `https://newsapi.dextora.org/api/${path}`;
+    return `https://newsapi.dextora.org/${path.replace(/^\//, '')}`;
   };
 
   const getPageNumbers = () => {

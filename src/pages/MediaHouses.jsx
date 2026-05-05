@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Lock, Unlock, Mail, MapPin, Users as UsersIcon, Loader2 } from 'lucide-react';
 import apiFetch from '../services/api';
 
-const backendUrl = 'https://newsapi.dextora.org/api';
-
 const getLogoUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http')) return url;
-  return `${backendUrl}${url}`;
+  return `https://newsapi.dextora.org/${url.replace(/^\//, '')}`;
 };
 
 const MediaHouses = () => {
