@@ -11,6 +11,7 @@ const ReportedArticles = () => {
   const [error, setError] = useState('');
 
   const [actionLoading, setActionLoading] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', id: null, title: '', message: '' });
   
   const { setPendingReports } = useAppContext();
 
@@ -48,9 +49,18 @@ const ReportedArticles = () => {
     }
   };
 
-  const handleApprove = async (id) => {
-    if (!window.confirm("Are you sure you want to approve this news and reset its reports?")) return;
+  const requestApprove = (id) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: 'approve',
+      id,
+      title: 'Approve Article',
+      message: 'Are you sure you want to approve this news and reset its reports?'
+    });
+  };
 
+  const confirmApprove = async () => {
+    const { id } = confirmDialog;
     setActionLoading(id);
     try {
       const res = await apiFetch(`/admin/news/${id}/review-report`, {
@@ -68,29 +78,45 @@ const ReportedArticles = () => {
       alert(err.message);
     } finally {
       setActionLoading(null);
+      setConfirmDialog({ isOpen: false, type: '', id: null, title: '', message: '' });
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to permanently delete this news article?")) return;
+  const requestDelete = (id) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: 'delete',
+      id,
+      title: 'Delete Article',
+      message: 'Are you sure you want to permanently delete this news article?'
+    });
+  };
 
+  const confirmDelete = async () => {
+    const { id } = confirmDialog;
     setActionLoading(id);
     try {
       const res = await apiFetch(`/news/${id}`, {
         method: 'DELETE'
       });
-      if (res.success) {
-        setArticles(prev => prev.filter(a => a._id !== id));
+      if (res.success || res.statusCode === 200) {
+        setArticles(prev => prev.filter(a => (a._id || a.id) !== id));
         setPagination(prev => prev ? { ...prev, totalDocs: Math.max(0, prev.totalDocs - 1) } : prev);
         setPendingReports(prev => Math.max(0, prev - 1));
       } else {
-        alert(res.error || res.message);
+        alert(res.error || res.message || 'Failed to delete news.');
       }
     } catch (err) {
       alert(err.message);
     } finally {
       setActionLoading(null);
+      setConfirmDialog({ isOpen: false, type: '', id: null, title: '', message: '' });
     }
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmDialog.type === 'approve') confirmApprove();
+    else if (confirmDialog.type === 'delete') confirmDelete();
   };
 
   const openDetailsModal = async (id) => {
@@ -222,7 +248,7 @@ const ReportedArticles = () => {
                     <Eye size={14} /> View
                   </button>
                   <button
-                    onClick={() => handleApprove(item._id)}
+                    onClick={() => requestApprove(item._id)}
                     disabled={isLoading}
                     className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-brand-green/10 hover:bg-brand-green/20 text-brand-green rounded-md text-sm font-medium transition-colors border border-brand-green/20 disabled:opacity-50"
                   >
@@ -230,7 +256,7 @@ const ReportedArticles = () => {
                     Approve
                   </button>
                   <button
-                    onClick={() => handleDelete(item._id)}
+                    onClick={() => requestDelete(item._id)}
                     disabled={isLoading}
                     className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-brand-red/10 hover:bg-brand-red/20 text-brand-red rounded-md text-sm font-medium transition-colors border border-brand-red/20 disabled:opacity-50"
                   >
@@ -365,6 +391,43 @@ const ReportedArticles = () => {
                 className="px-4 py-2 text-sm font-medium text-white bg-dark-700 border border-dark-600 rounded-lg hover:bg-dark-600 transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirm Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-dark-800 rounded-xl border border-dark-600 w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-dark-600/50">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                {confirmDialog.type === 'delete' && <AlertTriangle size={18} className="text-brand-red" />}
+                {confirmDialog.title}
+              </h3>
+            </div>
+            <div className="p-5">
+              <p className="text-gray-300 text-sm">{confirmDialog.message}</p>
+            </div>
+            <div className="p-5 bg-dark-900/50 border-t border-dark-600/50 flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDialog({ isOpen: false, type: '', id: null, title: '', message: '' })}
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAction}
+                disabled={actionLoading === confirmDialog.id}
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 ${
+                  confirmDialog.type === 'delete' 
+                    ? 'bg-brand-red text-white hover:bg-red-600'
+                    : 'bg-brand-green text-dark-900 hover:bg-brand-green/90'
+                }`}
+              >
+                {actionLoading === confirmDialog.id ? <Loader2 size={16} className="animate-spin" /> : null}
+                Confirm
               </button>
             </div>
           </div>

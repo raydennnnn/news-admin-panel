@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Mail, Ban, CheckCircle2, X } from 'lucide-react';
+import { Eye, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Loader2, AlertTriangle, Mail, Ban, CheckCircle2, X, Trash2 } from 'lucide-react';
 import apiFetch from '../services/api';
 
 const TrustScoreBadge = ({ score, level }) => {
@@ -31,6 +31,78 @@ const TrustScoreBadge = ({ score, level }) => {
   );
 };
 
+const PublisherRow = ({ pub, openModal }) => {
+  const [violationStats, setViolationStats] = useState(null);
+  
+  useEffect(() => {
+    apiFetch(`/admin/users/${pub._id}/violation-history?page=1&limit=1`)
+      .then(res => {
+        if (res.success && res.data && res.data.stats) {
+          setViolationStats(res.data.stats);
+        }
+      })
+      .catch(err => console.error(err));
+  }, [pub._id]);
+
+  let score = 100;
+  let reports = 0;
+  
+  if (violationStats) {
+    // Simple trust score algorithm based on warnings and deleted news
+    score = Math.max(0, 100 - (violationStats.totalWarningsSent * 15) - (violationStats.totalNewsDeletedByAdmin * 20));
+    reports = violationStats.totalWarningsSent + violationStats.totalNewsDeletedByAdmin;
+  }
+  
+  const level = score >= 80 ? 'High Trust' : score >= 50 ? 'Medium Trust' : 'Low Trust';
+  const initials = `${pub.firstName?.[0] || ''}${pub.lastName?.[0] || ''}`.toUpperCase() || 'P';
+  const fullName = `${pub.firstName || ''} ${pub.lastName || ''}`.trim() || 'Unknown';
+
+  return (
+    <tr className="hover:bg-dark-700/30 transition-colors">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded bg-dark-600 text-gray-300 font-bold flex items-center justify-center border border-dark-500">
+            {initials}
+          </div>
+          <div>
+            <p className="text-white font-medium">{fullName}</p>
+            <p className="text-gray-500 text-xs mt-0.5">{pub.email}</p>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <TrustScoreBadge score={score} level={level} />
+      </td>
+      <td className="px-6 py-4 text-gray-300">
+        - {/* Articles count is loaded in stats modal */}
+      </td>
+      <td className="px-6 py-4">
+        <div className={`flex items-center gap-1 ${reports > 0 ? 'text-brand-red' : 'text-brand-green'}`}>
+          {reports > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+          {reports} Violations
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        {!pub.isSuspended ? (
+          <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-md text-xs font-medium">Active</span>
+        ) : (
+          <span className="bg-brand-red/10 text-brand-red border border-brand-red/20 px-2.5 py-1 rounded-md text-xs font-medium">Suspended</span>
+        )}
+      </td>
+      <td className="px-6 py-4 text-right">
+        <div className="flex items-center justify-end gap-2 text-gray-400">
+          <button 
+            onClick={() => openModal(pub)}
+            className="p-1.5 hover:text-white hover:bg-dark-700 space-x-1 rounded transition-colors flex items-center gap-1"
+          >
+            <Eye size={16} /> View
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
+
 const AllPublishers = () => {
   const [publishers, setPublishers] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -41,6 +113,7 @@ const AllPublishers = () => {
   // Modal State
   const [selectedPub, setSelectedPub] = useState(null);
   const [pubStats, setPubStats] = useState(null);
+  const [pubViolations, setPubViolations] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState('');
 
@@ -107,14 +180,19 @@ const AllPublishers = () => {
   const openModal = async (pub) => {
     setSelectedPub(pub);
     setPubStats(null);
+    setPubViolations(null);
     setStatsLoading(true);
     try {
-      const res = await apiFetch(`/admin/publishers/${pub._id}/stats`);
-      if (res.success) {
-        setPubStats(res.data);
-      }
+      const [statsRes, violationsRes] = await Promise.all([
+        apiFetch(`/admin/publishers/${pub._id}/stats`),
+        apiFetch(`/admin/users/${pub._id}/violation-history?page=1&limit=10`)
+      ]);
+      
+      if (statsRes.success) setPubStats(statsRes.data);
+      if (violationsRes.success) setPubViolations(violationsRes.data);
+      
     } catch (err) {
-      console.error("Failed to load stats:", err);
+      console.error("Failed to load details:", err);
     } finally {
       setStatsLoading(false);
     }
@@ -123,6 +201,7 @@ const AllPublishers = () => {
   const closeModal = () => {
     setSelectedPub(null);
     setPubStats(null);
+    setPubViolations(null);
   };
 
   const handleSendWarning = async (id) => {
@@ -131,6 +210,9 @@ const AllPublishers = () => {
       const res = await apiFetch(`/admin/publishers/${id}/warning`, { method: 'POST' });
       if (res.success) {
         showNotification("Warning email sent successfully.", 'success');
+        // Refresh violations
+        const violationsRes = await apiFetch(`/admin/users/${id}/violation-history?page=1&limit=10`);
+        if (violationsRes.success) setPubViolations(violationsRes.data);
       } else {
         showNotification(res.error || res.message || "Failed to send warning.", 'error');
       }
@@ -147,7 +229,6 @@ const AllPublishers = () => {
     try {
       const res = await apiFetch(`/admin/publishers/${id}/toggle-suspension`, { method: 'POST' });
       if (res.success) {
-        // Find current status before toggling
         const currentPub = publishers.find(p => p._id === id) || selectedPub;
         const currentStatus = currentPub ? currentPub.isSuspended : false;
         
@@ -159,6 +240,26 @@ const AllPublishers = () => {
         showNotification(res.message || "Status updated successfully.", 'success');
       } else {
         showNotification(res.error || res.message || "Failed to update status.", 'error');
+      }
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setActionLoading('');
+      setConfirmDialog({ isOpen: false, type: '', id: null, title: '', message: '' });
+    }
+  };
+
+  const handleDeleteContent = async (id) => {
+    setActionLoading('delete_content');
+    try {
+      const res = await apiFetch(`/admin/users/${id}/content`, { method: 'DELETE' });
+      if (res.success) {
+        showNotification(res.message || `Deleted ${res.data?.deletedNewsCount || 0} news articles successfully.`, 'success');
+        // Refresh stats
+        const statsRes = await apiFetch(`/admin/publishers/${id}/stats`);
+        if (statsRes.success) setPubStats(statsRes.data);
+      } else {
+        showNotification(res.error || res.message || "Failed to delete content.", 'error');
       }
     } catch (err) {
       showNotification(err.message, 'error');
@@ -186,12 +287,21 @@ const AllPublishers = () => {
         title: `${pub.isSuspended ? 'Unsuspend' : 'Suspend'} Publisher`,
         message: `Are you sure you want to ${actionText} ${pub.firstName}?`
       });
+    } else if (type === 'delete_content') {
+      setConfirmDialog({
+        isOpen: true,
+        type: 'delete_content',
+        id: pub._id,
+        title: 'Delete All Content',
+        message: `CRITICAL ACTION: Are you sure you want to permanently delete ALL content created by ${pub.firstName}? This action cannot be undone.`
+      });
     }
   };
 
   const confirmAction = () => {
     if (confirmDialog.type === 'warning') handleSendWarning(confirmDialog.id);
     if (confirmDialog.type === 'suspension') handleToggleSuspension(confirmDialog.id);
+    if (confirmDialog.type === 'delete_content') handleDeleteContent(confirmDialog.id);
   };
 
   return (
@@ -235,68 +345,15 @@ const AllPublishers = () => {
                   <th className="px-6 py-4 uppercase">Publisher</th>
                   <th className="px-6 py-4 uppercase">Trust Score</th>
                   <th className="px-6 py-4 uppercase">Articles</th>
-                  <th className="px-6 py-4 uppercase">Report Rate</th>
+                  <th className="px-6 py-4 uppercase">Violations</th>
                   <th className="px-6 py-4 uppercase">Status</th>
                   <th className="px-6 py-4 uppercase text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-600/50">
-                {publishers.map((pub) => {
-                  const initials = `${pub.firstName?.[0] || ''}${pub.lastName?.[0] || ''}`.toUpperCase() || 'P';
-                  const fullName = `${pub.firstName || ''} ${pub.lastName || ''}`.trim() || 'Unknown';
-                  
-                  // Dummy values for future-proofing as requested
-                  const dummyTrustScore = 85;
-                  const dummyTrustLevel = 'High Trust';
-                  const dummyArticles = 0; // The actual value is loaded in stats modal
-                  const dummyReportRate = '0.0%';
-                  const dummyReportTrend = 'down';
-
-                  return (
-                    <tr key={pub._id} className="hover:bg-dark-700/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded bg-dark-600 text-gray-300 font-bold flex items-center justify-center border border-dark-500">
-                            {initials}
-                          </div>
-                          <div>
-                            <p className="text-white font-medium">{fullName}</p>
-                            <p className="text-gray-500 text-xs mt-0.5">{pub.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <TrustScoreBadge score={dummyTrustScore} level={dummyTrustLevel} />
-                      </td>
-                      <td className="px-6 py-4 text-gray-300">
-                        {dummyArticles}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`flex items-center gap-1 ${dummyReportTrend === 'up' ? 'text-brand-red' : 'text-brand-green'}`}>
-                          {dummyReportTrend === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                          {dummyReportRate}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {!pub.isSuspended ? (
-                          <span className="bg-brand-green/10 text-brand-green border border-brand-green/20 px-2.5 py-1 rounded-md text-xs font-medium">Active</span>
-                        ) : (
-                          <span className="bg-brand-red/10 text-brand-red border border-brand-red/20 px-2.5 py-1 rounded-md text-xs font-medium">Suspended</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 text-gray-400">
-                          <button 
-                            onClick={() => openModal(pub)}
-                            className="p-1.5 hover:text-white hover:bg-dark-700 space-x-1 rounded transition-colors flex items-center gap-1"
-                          >
-                            <Eye size={16} /> View
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {publishers.map((pub) => (
+                  <PublisherRow key={pub._id} pub={pub} openModal={openModal} />
+                ))}
               </tbody>
             </table>
           </div>
@@ -359,8 +416,8 @@ const AllPublishers = () => {
 
       {/* Details Modal */}
       {selectedPub && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-dark-800 rounded-2xl border border-dark-600 w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-[55] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-dark-800 rounded-2xl border border-dark-600 w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-dark-600/50 flex items-center justify-between shrink-0">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 Publisher Details
@@ -390,47 +447,56 @@ const AllPublishers = () => {
               {statsLoading ? (
                 <div className="py-8 flex flex-col items-center justify-center gap-3">
                   <Loader2 size={24} className="text-brand-green animate-spin" />
-                  <p className="text-gray-500 text-sm">Loading statistics...</p>
-                </div>
-              ) : pubStats ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Total News</p>
-                    <p className="text-2xl font-bold text-white">{pubStats.totalNews}</p>
-                  </div>
-                  <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Reported News</p>
-                    <p className="text-2xl font-bold text-brand-red">{pubStats.reportedNewsCount}</p>
-                  </div>
-                  <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Report Percentage</p>
-                    <p className="text-2xl font-bold text-white">{pubStats.reportPercentage}%</p>
-                  </div>
-                  <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
-                    <p className="text-gray-400 text-xs mb-1">Join Date</p>
-                    <p className="text-lg font-bold text-white mt-1">
-                      {new Date(pubStats.joinDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  {pubStats.joinedMediaHouses?.length > 0 && (
-                    <div className="col-span-2 bg-dark-900 border border-dark-600/50 rounded-lg p-4">
-                       <p className="text-gray-400 text-xs mb-2">Media Houses</p>
-                       <div className="flex flex-wrap gap-2">
-                         {pubStats.joinedMediaHouses.map((mh, idx) => (
-                           <span key={idx} className="bg-dark-700 text-gray-300 text-xs px-2 py-1 rounded border border-dark-600/50">
-                             {mh}
-                           </span>
-                         ))}
-                       </div>
-                    </div>
-                  )}
+                  <p className="text-gray-500 text-sm">Loading statistics and violation history...</p>
                 </div>
               ) : (
-                <div className="py-4 text-center text-brand-red text-sm">Failed to load statistics.</div>
+                <div className="space-y-6">
+                  {/* Stats Grid */}
+                  {pubStats && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
+                        <p className="text-gray-400 text-xs mb-1">Total News</p>
+                        <p className="text-xl font-bold text-white">{pubStats.totalNews}</p>
+                      </div>
+                      <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
+                        <p className="text-gray-400 text-xs mb-1">Reported News</p>
+                        <p className="text-xl font-bold text-brand-yellow">{pubStats.reportedNewsCount}</p>
+                      </div>
+                      <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
+                        <p className="text-gray-400 text-xs mb-1">Report Rate</p>
+                        <p className="text-xl font-bold text-white">{pubStats.reportPercentage}%</p>
+                      </div>
+                      <div className="bg-dark-900 border border-dark-600/50 rounded-lg p-4 text-center">
+                        <p className="text-gray-400 text-xs mb-1">Warnings Sent</p>
+                        <p className="text-xl font-bold text-brand-red">{pubViolations?.stats?.totalWarningsSent || 0}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Violation History */}
+                  <div className="bg-dark-900 border border-dark-600/50 rounded-xl p-5">
+                    <h4 className="text-white font-bold text-sm mb-4">Violation History</h4>
+                    {pubViolations && pubViolations.historyList?.length > 0 ? (
+                      <div className="space-y-3 max-h-40 overflow-y-auto custom-scrollbar pr-2">
+                        {pubViolations.historyList.map((violation, idx) => (
+                          <div key={idx} className="bg-dark-800 rounded-lg p-3 border border-dark-600/50 text-sm">
+                            <p className="text-gray-300">{violation.reason || 'Violation recorded'}</p>
+                            <p className="text-gray-500 text-xs mt-1">{new Date(violation.date || violation.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 border border-dashed border-dark-600/50 rounded-lg">
+                        <p className="text-brand-green font-medium text-sm">Excellent Record</p>
+                        <p className="text-gray-500 text-xs mt-1">No violations found for this publisher.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
             
-            <div className="p-6 bg-dark-900/50 border-t border-dark-600/50 flex gap-3">
+            <div className="p-6 bg-dark-900/50 border-t border-dark-600/50 flex flex-wrap gap-3">
               <button
                 onClick={() => requestAction('warning', selectedPub)}
                 disabled={actionLoading !== ''}
@@ -458,6 +524,15 @@ const AllPublishers = () => {
                 )}
                 {selectedPub.isSuspended ? 'Unsuspend' : 'Suspend'}
               </button>
+
+              <button
+                onClick={() => requestAction('delete_content', selectedPub)}
+                disabled={actionLoading !== ''}
+                className="w-full sm:flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600/20 border border-red-500/30 rounded-lg hover:bg-red-600/30 transition-colors flex items-center justify-center gap-2"
+              >
+                {actionLoading === 'delete_content' ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                Delete All Content
+              </button>
             </div>
           </div>
         </div>
@@ -468,7 +543,10 @@ const AllPublishers = () => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-dark-800 rounded-xl border border-dark-600 w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
             <div className="p-5 border-b border-dark-600/50">
-              <h3 className="text-lg font-bold text-white">{confirmDialog.title}</h3>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                {confirmDialog.type === 'delete_content' && <AlertTriangle size={18} className="text-brand-red" />}
+                {confirmDialog.title}
+              </h3>
             </div>
             <div className="p-5">
               <p className="text-gray-300 text-sm">{confirmDialog.message}</p>
@@ -483,7 +561,11 @@ const AllPublishers = () => {
               <button
                 onClick={confirmAction}
                 disabled={actionLoading !== ''}
-                className="px-4 py-2 bg-brand-green text-dark-900 text-sm font-bold rounded-lg hover:bg-brand-green/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 ${
+                  confirmDialog.type === 'delete_content' 
+                    ? 'bg-brand-red text-white hover:bg-red-600'
+                    : 'bg-brand-green text-dark-900 hover:bg-brand-green/90'
+                }`}
               >
                 {actionLoading !== '' ? <Loader2 size={16} className="animate-spin" /> : null}
                 Confirm

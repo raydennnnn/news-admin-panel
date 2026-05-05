@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Filter, RefreshCcw, AlertTriangle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Filter, RefreshCcw, AlertTriangle, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import apiFetch from '../services/api';
 
 const AllArticles = () => {
@@ -10,6 +10,39 @@ const AllArticles = () => {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const limit = 10;
+
+  const [actionLoading, setActionLoading] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null, title: '', message: '' });
+
+  const requestDelete = (id) => {
+    setConfirmDialog({
+      isOpen: true,
+      id,
+      title: 'Delete Article',
+      message: 'Are you sure you want to permanently delete this news article?'
+    });
+  };
+
+  const confirmDelete = async () => {
+    const { id } = confirmDialog;
+    setActionLoading(id);
+    try {
+      const res = await apiFetch(`/news/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.success || res.statusCode === 200) {
+        setArticles(prev => prev.filter(a => (a._id || a.id) !== id));
+        setPagination(prev => prev ? { ...prev, totalDocs: Math.max(0, prev.totalDocs - 1) } : prev);
+      } else {
+        alert(res.error || res.message || 'Failed to delete news.');
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null);
+      setConfirmDialog({ isOpen: false, id: null, title: '', message: '' });
+    }
+  };
 
   const fetchArticles = async (page) => {
     setLoading(true);
@@ -146,6 +179,7 @@ const AllArticles = () => {
                   <th className="px-6 py-4 uppercase">Reports</th>
                   <th className="px-6 py-4 uppercase">Comments</th>
                   <th className="px-6 py-4 uppercase">Date</th>
+                  <th className="px-6 py-4 uppercase text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-dark-600/50">
@@ -156,8 +190,10 @@ const AllArticles = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredArticles.map((article) => (
-                    <tr key={article.id} className="hover:bg-dark-700/30 transition-colors">
+                  filteredArticles.map((article) => {
+                    const id = article.id || article._id;
+                    return (
+                      <tr key={id} className="hover:bg-dark-700/30 transition-colors">
                       <td className="px-6 py-4">
                         <p className="text-white font-medium max-w-[350px] truncate" title={article.headline}>
                           {article.headline}
@@ -195,8 +231,19 @@ const AllArticles = () => {
                       <td className="px-6 py-4 text-gray-500 text-sm">
                         {formatDate(article.publishedTime || article.createdAt)}
                       </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => requestDelete(id)}
+                          disabled={actionLoading === id}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ml-auto text-brand-red bg-brand-red/10 hover:bg-brand-red/20 border-brand-red/20 disabled:opacity-50"
+                        >
+                          {actionLoading === id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          Delete
+                        </button>
+                      </td>
                     </tr>
-                  ))
+                  );
+                })
                 )}
               </tbody>
             </table>
@@ -257,6 +304,39 @@ const AllArticles = () => {
           </div>
         )}
       </div>
+
+      {/* Custom Confirm Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-dark-800 rounded-xl border border-dark-600 w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-dark-600/50">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <AlertTriangle size={18} className="text-brand-red" />
+                {confirmDialog.title}
+              </h3>
+            </div>
+            <div className="p-5">
+              <p className="text-gray-300 text-sm">{confirmDialog.message}</p>
+            </div>
+            <div className="p-5 bg-dark-900/50 border-t border-dark-600/50 flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDialog({ isOpen: false, id: null, title: '', message: '' })}
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={actionLoading === confirmDialog.id}
+                className="px-4 py-2 text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 bg-brand-red text-white hover:bg-red-600"
+              >
+                {actionLoading === confirmDialog.id ? <Loader2 size={16} className="animate-spin" /> : null}
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
