@@ -151,11 +151,7 @@ const VerificationQueue = () => {
           </div>
           <p className="text-gray-400 text-sm">Review and verify publisher applications</p>
         </div>
-        {!loading && (
-          <div className="bg-dark-800 border border-dark-600 rounded-full px-4 py-1.5 flex items-center gap-2 text-sm text-gray-400 hidden sm:flex">
-            <span>⏱</span> Avg. review time: 2.3 days
-          </div>
-        )}
+
       </div>
 
       {/* KPI Stats */}
@@ -412,40 +408,60 @@ const VerificationQueue = () => {
       )}
 
       {/* Document Viewer Modal */}
-      {selectedDoc && (
-        <div 
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-          onClick={() => setSelectedDoc(null)}
-        >
-          <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center">
-            <button 
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-dark-800/50 p-2 rounded-full"
-              onClick={() => setSelectedDoc(null)}
-            >
-              <X size={24} />
-            </button>
-            <div className="bg-dark-900 rounded-lg overflow-hidden border border-dark-600">
-              <img 
-                src={selectedDoc} 
-                alt="Document View" 
-                className="max-w-full max-h-[85vh] object-contain"
-                onClick={e => e.stopPropagation()}
-              />
-            </div>
-            <div className="mt-4 flex gap-4">
-              <a 
-                href={selectedDoc} 
-                target="_blank" 
-                rel="noreferrer"
-                className="px-4 py-2 bg-dark-800 text-white text-sm font-medium rounded-lg hover:bg-dark-700 transition-colors border border-dark-600"
-                onClick={e => e.stopPropagation()}
+      {selectedDoc && (() => {
+        const isPdf = selectedDoc.toLowerCase().endsWith('.pdf');
+        return (
+          <div 
+            className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+            onClick={() => setSelectedDoc(null)}
+          >
+            <div className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center">
+              <button 
+                className="absolute -top-12 right-0 text-white hover:text-gray-300 bg-dark-800/50 p-2 rounded-full"
+                onClick={() => setSelectedDoc(null)}
               >
-                Open in New Tab
-              </a>
+                <X size={24} />
+              </button>
+              {isPdf ? (
+                <div className="bg-dark-900 rounded-lg border border-dark-600 p-12 flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
+                  <FileText size={48} className="text-gray-500" />
+                  <p className="text-gray-300 text-sm">PDF documents cannot be previewed inline.</p>
+                  <a 
+                    href={selectedDoc} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="px-5 py-2.5 bg-brand-green/20 text-brand-green text-sm font-bold rounded-lg hover:bg-brand-green/30 transition-colors border border-brand-green/50 flex items-center gap-2"
+                  >
+                    <Eye size={16} /> Open in New Tab
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-dark-900 rounded-lg overflow-hidden border border-dark-600">
+                    <img 
+                      src={selectedDoc} 
+                      alt="Document View" 
+                      className="max-w-full max-h-[85vh] object-contain"
+                      onClick={e => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="mt-4 flex gap-4">
+                    <a 
+                      href={selectedDoc} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-dark-800 text-white text-sm font-medium rounded-lg hover:bg-dark-700 transition-colors border border-dark-600"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      Open in New Tab
+                    </a>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
