@@ -7,8 +7,8 @@ import {
   Building2,
   Users,
   Hash,
-  MessageSquare,
-  BarChart2,
+  // MessageSquare,
+  // BarChart2,
   Shield,
   Settings,
   LogOut
@@ -116,9 +116,9 @@ const Sidebar = () => {
         <NavItem to="/media-houses" label="Media Houses" icon={Building2} />
         <NavItem to="/users" label="Users" icon={Users} />
         <NavItem to="/topics" label="Topics" icon={Hash} />
-        <NavItem to="/comments" label="Comments" icon={MessageSquare} />
+        {/* <NavItem to="/comments" label="Comments" icon={MessageSquare} />
         <NavItem to="/analytics" label="Analytics" icon={BarChart2} />
-        <NavItem to="/audit-logs" label="Audit Logs" icon={FileText} />
+        <NavItem to="/audit-logs" label="Audit Logs" icon={FileText} /> */}
       </div>
 
       {/* Footer / User Profile & Logout */}

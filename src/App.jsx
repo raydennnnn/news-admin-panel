@@ -12,9 +12,9 @@ import VerificationQueue from './pages/VerificationQueue';
 import MediaHouses from './pages/MediaHouses';
 import Users from './pages/Users';
 import Topics from './pages/Topics';
-import Comments from './pages/Comments';
-import Analytics from './pages/Analytics';
-import AuditLogs from './pages/AuditLogs';
+// import Comments from './pages/Comments';
+// import Analytics from './pages/Analytics';
+// import AuditLogs from './pages/AuditLogs';
 import GenericPage from './pages/GenericPage';
 
 function App() {
@@ -43,9 +43,9 @@ function App() {
               <Route path="media-houses" element={<MediaHouses />} />
               <Route path="users" element={<Users />} />
               <Route path="topics" element={<Topics />} />
-              <Route path="comments" element={<Comments />} />
+              {/* <Route path="comments" element={<Comments />} />
               <Route path="analytics" element={<Analytics />} />
-              <Route path="audit-logs" element={<AuditLogs />} />
+              <Route path="audit-logs" element={<AuditLogs />} /> */}
               <Route path="*" element={<GenericPage title="Page Not Found" />} />
             </Route>
           </Routes>
