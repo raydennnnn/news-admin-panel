@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Bell, ChevronDown, User, Shield, ChevronUp, Check, Keyboard, LogOut } from 'lucide-react';
+import { ChevronDown, User, Shield, ChevronUp, Check, Keyboard, LogOut } from 'lucide-react';
 
 const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -19,7 +19,7 @@ const Header = () => {
 
   return (
     <header className="h-16 border-b border-dark-600/50 bg-[#0B0F17]/95 backdrop-blur-sm sticky top-0 z-50 flex items-center justify-between px-6">
-      <div className="flex-1 flex max-w-2xl">
+      {/* <div className="flex-1 flex max-w-2xl">
         <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-500" />
@@ -33,15 +33,15 @@ const Header = () => {
             <span className="text-gray-500 text-xs border border-dark-600 rounded px-1.5 py-0.5 font-medium">⌘K</span>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex items-center gap-6 ml-4">
-        <button className="relative text-gray-400 hover:text-white transition-colors">
+        {/* <button className="relative text-gray-400 hover:text-white transition-colors">
           <Bell size={20} />
           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-brand-red text-[10px] text-white font-bold ring-2 ring-[#0B0F17]">
             5
           </span>
-        </button>
+        </button> */}
 
         <div className="relative" ref={dropdownRef}>
           <div 
