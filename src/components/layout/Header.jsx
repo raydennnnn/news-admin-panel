@@ -18,7 +18,7 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="h-16 border-b border-dark-600/50 bg-[#0B0F17]/95 backdrop-blur-sm sticky top-0 z-50 flex items-center justify-between px-6">
+    <header className="h-16 border-b border-dark-600/50 bg-[#0B0F17]/95 backdrop-blur-sm sticky top-0 z-50 flex items-center justify-end px-6">
       {/* <div className="flex-1 flex max-w-2xl">
         <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
