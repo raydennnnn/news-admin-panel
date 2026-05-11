@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, User, Shield, ChevronUp, Check, Keyboard, LogOut } from 'lucide-react';
+import { ChevronDown, Shield, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isRoleOpen, setIsRoleOpen] = useState(true);
-  const [activeRole, setActiveRole] = useState('Super Admin');
+  const { logout } = useAuth();
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -76,78 +76,13 @@ const Header = () => {
                 </div>
               </div>
 
-              {/* Menu Options */}
-              <div className="space-y-1 px-2">
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors">
-                  <User size={16} className="text-gray-500" />
-                  Profile & Preferences
-                </button>
 
-                {/* Switch Role Submenu */}
-                <div className="py-1">
-                  <button 
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors"
-                    onClick={() => setIsRoleOpen(!isRoleOpen)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Shield size={16} className="text-gray-500" />
-                      Switch Role
-                    </div>
-                    {isRoleOpen ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
-                  </button>
-
-                  {isRoleOpen && (
-                    <div className="mt-1 ml-4 border-l border-dark-600 space-y-1">
-                      <button 
-                        onClick={() => setActiveRole('Super Admin')}
-                        className={`w-full flex items-start gap-3 px-4 py-2 text-left hover:bg-dark-800 rounded-r-lg transition-colors ${activeRole === 'Super Admin' ? 'bg-dark-800/50' : ''}`}
-                      >
-                        <div className="w-6 h-6 rounded-full bg-brand-green shrink-0 flex items-center justify-center text-[10px] font-bold text-dark-900 mt-0.5">SA</div>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${activeRole === 'Super Admin' ? 'text-white' : 'text-gray-300'}`}>Super Admin</p>
-                          <p className="text-xs text-gray-500">Full access to all features</p>
-                        </div>
-                        {activeRole === 'Super Admin' && <Check size={16} className="text-brand-green mt-1" />}
-                      </button>
-
-                      <button 
-                        onClick={() => setActiveRole('Moderator')}
-                         className={`w-full flex items-start gap-3 px-4 py-2 text-left hover:bg-dark-800 rounded-r-lg transition-colors ${activeRole === 'Moderator' ? 'bg-dark-800/50' : ''}`}
-                      >
-                        <div className="w-6 h-6 rounded-full bg-blue-500 shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-0.5">MO</div>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${activeRole === 'Moderator' ? 'text-white' : 'text-gray-300'}`}>Moderator</p>
-                          <p className="text-xs text-gray-500">Manage content & users</p>
-                        </div>
-                        {activeRole === 'Moderator' && <Check size={16} className="text-brand-green mt-1" />}
-                      </button>
-
-                      <button 
-                        onClick={() => setActiveRole('Analyst')}
-                         className={`w-full flex items-start gap-3 px-4 py-2 text-left hover:bg-dark-800 rounded-r-lg transition-colors ${activeRole === 'Analyst' ? 'bg-dark-800/50' : ''}`}
-                      >
-                        <div className="w-6 h-6 rounded-full bg-purple-500 shrink-0 flex items-center justify-center text-[10px] font-bold text-white mt-0.5">AN</div>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${activeRole === 'Analyst' ? 'text-white' : 'text-gray-300'}`}>Analyst</p>
-                          <p className="text-xs text-gray-500">Read-only analytics access</p>
-                        </div>
-                        {activeRole === 'Analyst' && <Check size={16} className="text-brand-green mt-1" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors mt-1">
-                  <div className="flex items-center gap-3">
-                     <Keyboard size={16} className="text-gray-500" />
-                     Keyboard Shortcuts
-                  </div>
-                  <span className="text-xs bg-dark-700 text-gray-400 px-1.5 py-0.5 rounded border border-dark-600">?</span>
-                </button>
-              </div>
 
               <div className="border-t border-dark-600/50 mt-2 pt-2 px-2">
-                <button className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-red font-medium hover:bg-brand-red/10 rounded-lg border border-transparent hover:border-brand-red/20 transition-colors">
+                <button 
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-sm text-brand-red font-medium hover:bg-brand-red/10 rounded-lg border border-transparent hover:border-brand-red/20 transition-colors"
+                >
                   <LogOut size={16} />
                   Sign Out
                 </button>
