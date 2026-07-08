@@ -114,7 +114,8 @@ const VerificationQueue = () => {
   const getDocUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `https://newsapi.dextora.org/${path.replace(/^\//, '')}`;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+    return `${baseUrl}/${path.replace(/^\//, '')}`;
   };
 
   const getPageNumbers = () => {

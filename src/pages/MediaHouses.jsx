@@ -5,7 +5,8 @@ import apiFetch from '../services/api';
 const getLogoUrl = (url) => {
   if (!url) return null;
   if (url.startsWith('http')) return url;
-  return `https://newsapi.dextora.org/${url.replace(/^\//, '')}`;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+  return `${baseUrl}/${url.replace(/^\//, '')}`;
 };
 
 const MediaHouses = () => {
