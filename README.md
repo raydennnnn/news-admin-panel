@@ -69,4 +69,15 @@ docker run -p 80:80 news-admin-panel
 
 ## 📸 Screenshots
 
-*(Add your screenshots here from the `design-assets/` directory)*
+<p align="center">
+  <img src="design-assets/Dashboard.png" alt="Dashboard" width="800"/>
+</p>
+<p align="center">
+  <img src="design-assets/Verification%20Queue.png" alt="Verification Queue" width="800"/>
+</p>
+<p align="center">
+  <img src="design-assets/Reported%20Article.png" alt="Reported Article" width="800"/>
+</p>
+<p align="center">
+  <img src="design-assets/Media%20House.png" alt="Media House" width="800"/>
+</p>
